@@ -1,29 +1,36 @@
 import torch
 from torch import nn
 from torch.autograd import Variable
+from sklearn.datasets import fetch_rcv1
 
 # 构造数据
-n_data = torch.ones(100, 2)
-x0 = torch.normal(2 * n_data)
-y0 = torch.zeros(100)
-x1 = torch.normal(-2 * n_data)
-y1 = torch.ones(100)
+# n_data = torch.ones(100, 2)
+# x0 = torch.normal(2 * n_data)
+# y0 = torch.zeros(100)
+# x1 = torch.normal(-2 * n_data)
+# y1 = torch.ones(100)
+#
+# x = torch.cat((x0, x1)).type(torch.FloatTensor)
+# y = torch.cat((y0, y1)).type(torch.FloatTensor)
 
-x = torch.cat((x0, x1)).type(torch.FloatTensor)
-y = torch.cat((y0, y1)).type(torch.FloatTensor)
+rcv1 = fetch_rcv1(subset='train', download_if_missing=False)
+xArray = torch.from_numpy(rcv1.data.A) # csr_matrix -> numpy.ndarray -> torch
+yArray = torch.from_numpy(rcv1.target.A)
 
 
 # 定义LogisticRegression
 class LogisticRegression(nn.Module):
     def __init__(self):
         super(LogisticRegression, self).__init__()
-        self.linearTransform = nn.Linear(2, 1)
-        self.sigmoid = nn.Sigmoid()
+        self.linearTransform = nn.Linear(47236, 103)
+        self.softmax = nn.Softmax()
 
     def forward(self, x):
         x = self.linearTransform(x)
-        x = self.sigmoid(x)
+        x = self.softmax(x)
         return x
+
+
 logistic_model = LogisticRegression()
 criterion = nn.BCELoss()
 use_gpu = torch.cuda.is_available()
@@ -34,11 +41,11 @@ use_gpu = torch.cuda.is_available()
 # x=x.to(device)
 # y=y.to(device)
 
-if(use_gpu):
-    logistic_model = logistic_model.cuda()
-    criterion = criterion.cuda()
-    x = x.cuda()
-    y = y.cuda()
+# if(use_gpu):
+#     logistic_model = logistic_model.cuda()
+#     criterion = criterion.cuda()
+#     xArray = xArray.cuda()
+#     yArray = yArray.cuda()
 
 
 optimizer = torch.optim.SGD(logistic_model.parameters(), lr=1e-3, momentum=0.9)
@@ -46,8 +53,8 @@ optimizer = torch.optim.SGD(logistic_model.parameters(), lr=1e-3, momentum=0.9)
 # 训练过程
 print("torch.cuda = ", torch.cuda)
 for epoch in range(1000):
-    x_data = Variable(x)
-    y_data = Variable(y)
+    x_data = Variable(xArray)
+    y_data = Variable(yArray)
 
     # 前向
     out = logistic_model(x_data)
