@@ -15,6 +15,11 @@ EPOCH = 1000
 
 class DataAccessObject:
     def __init__(self):
+        """
+            dir(rcv1) = ['DESCR', 'data', 'sample_id', 'target', 'target_names']
+            data是 n_samples x n_feature的二维numpy.ndarray数组
+            target是 n_samples一维numpy.ndarray数组
+        """
         self.load_data()
         self.load_batch()
 
