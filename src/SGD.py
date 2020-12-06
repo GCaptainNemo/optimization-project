@@ -74,31 +74,21 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     logistic_model.to(device)
     criterion.to(device)
-    # if(use_gpu):
-    #     logistic_model = logistic_model.cuda()
-    #     criterion = criterion.cuda()
-    #     xArray = xArray.cuda()
-    #     yArray = yArray.cuda()
     optimizer = torch.optim.SGD(logistic_model.parameters(),
                                 lr=1e-3)
     loss_lst = []
     for num_epoch in range(1000):
         print(num_epoch)
         for step, (batch_x, batch_y) in enumerate(DAO.loader):
-            # b_x = Variable(batch_x)
-            # b_y = Variable(batch_x)
             batch_x = batch_x.to(device)
             batch_y = batch_y.to(device)
 
             output = logistic_model(batch_x)  # get_out for every net
             loss = criterion(output, batch_y)  # compute loss for every net
-            # if don't call zero_grad,
-            # the grad of each batch will be accumulated
             optimizer.zero_grad()
             loss.backward()
             optimizer.step() # apply gradient
             loss_lst.append(loss.item()) # loss recoder
-        # if (num_epoch + 1) % 5 == 0:
         print('Epoch [{}/{}], Loss: {:.4f}'.format(num_epoch + 1, EPOCH, loss.item()))
     torch.save(logistic_model, "SGD_model_epoch1000.pt")
     with open("loss_sgd.pkl", "wb") as f:

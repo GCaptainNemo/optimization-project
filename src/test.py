@@ -1,9 +1,7 @@
 import numpy as np
 import torch
 from sklearn.datasets import fetch_rcv1
-from src.SGD import LogisticRegression
 
-# new = LogisticRegression()
 
 class DataAccessObject:
     def __init__(self):
@@ -42,19 +40,3 @@ if __name__ == "__main__":
 
     print("acc = ", acc)
     print(DAO.xArray.size(0))
-
-
-
-
-
-# new.load_state_dict()
-
-
-# testx = np.load('testx', allow_pickle=True)
-# testy = np.load('testy', allow_pickle=True)
-# for i in range(47236):
-#     print(testx[0, i])
-# print(testx.shape)
-
-
-

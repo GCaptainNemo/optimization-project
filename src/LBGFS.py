@@ -26,11 +26,11 @@ class DataAccessObject:
     def load_data(self):
         rcv1 = fetch_rcv1(subset='train', download_if_missing=False)
         x = rcv1.data.A  # numpy.float64
-        x = x.astype(np.float32)  # 修改数据类型，否则就会出错
+        x = x.astype(np.float32)
         self.xArray = torch.from_numpy(x)
         # csr_matrix -> numpy.ndarray -> torch.tensor
         y = rcv1.target.A
-        y = y.astype(np.float32)  # 修改数据类型，否则就会出错
+        y = y.astype(np.float32)  # 修改数据类型，否则会出错
         self.yArray = torch.from_numpy(y)
 
     def load_batch(self):
@@ -70,49 +70,20 @@ if __name__ == '__main__':
     logistic_model = LogisticRegression()
     DAO = DataAccessObject()
     criterion = MyLossFunction()
-    # criterion = nn.BCELoss()
     use_gpu = torch.cuda.is_available()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     logistic_model.to(device)
     criterion.to(device)
-
-    # if(use_gpu):
-    #     logistic_model = logistic_model.cuda()
-    #     criterion = criterion.cuda()
-    #     xArray = xArray.cuda()
-    #     yArray = yArray.cuda()
+    # 显存需大于等于4GB
+    x_data = DAO.xArray.to(device)
+    y_data = DAO.yArray.to(device)
     optimizer = torch.optim.LBFGS(logistic_model.parameters(),
                       lr=1, max_iter=20, max_eval=None,
                       tolerance_grad=1e-05, tolerance_change=1e-09,
                       history_size=100, line_search_fn=None)
 
     loss_lst = []
-    # for num_epoch in range(1000):
-    #     print(num_epoch)
-    #     for step, (batch_x, batch_y) in enumerate(DAO.loader):
-    #         # b_x = Variable(batch_x)
-    #         # b_y = Variable(batch_x)
-    #         batch_x = batch_x.to(device)
-    #         batch_y = batch_y.to(device)
-    #
-    #         output = logistic_model(batch_x)  # get_out for every net
-    #         loss = criterion(output, batch_y)  # compute loss for every net
-    #         # if don't call zero_grad,
-    #         # the grad of each batch will be accumulated
-    #         optimizer.zero_grad()
-    #         loss.backward()
-    #         optimizer.step() # apply gradient
-    #         loss_lst.append(loss.item()) # loss recoder
-    #     # if (num_epoch + 1) % 5 == 0:
-    #     print('Epoch [{}/{}], Loss: {:.4f}'.format(num_epoch + 1, EPOCH, loss.item()))
-    # torch.save(logistic_model, "LBFGS_model_epoch1000.pt")
-    # with open("loss_lbfgs.pkl", "wb") as f:
-    #     pickle.dump(loss_lst, f)
-    # print(loss)
-
     for epoch in range(1000):
-        x_data = Variable(DAO.xArray)
-        y_data = Variable(DAO.yArray)
         # 前向
         out = logistic_model(x_data)
         loss = criterion(out, y_data)
@@ -132,10 +103,3 @@ if __name__ == '__main__':
     torch.save(logistic_model, "LBFGS_model_epoch1000.pt")
     with open("loss_lbfgs.pkl", "wb") as f:
         pickle.dump(loss_lst, f)
-
-
-
-
-
-
-
