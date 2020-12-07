@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from sklearn.datasets import fetch_rcv1
-
+from src.LBFGS import LogisticRegression
 
 class DataAccessObject:
     def __init__(self):
@@ -23,7 +23,7 @@ class DataAccessObject:
         self.yArray = torch.from_numpy(y)
 
 
-the_model = torch.load("mini_batchGD_model_epoch1000.pt")
+the_model = torch.load("LBFGS_model_epoch1000.pt")
 the_model.to(torch.device("cpu"))
 print(the_model.linearTransform.weight[0])
 print(type(the_model))
@@ -38,5 +38,5 @@ if __name__ == "__main__":
     correct = (mask == DAO.yArray).sum()
     acc = correct.item() / DAO.xArray.size(0)
 
-    print("acc = ", acc)
-    print(DAO.xArray.size(0))
+    print("acc = ", acc) # 99.81640675623137
+    print(DAO.xArray.size(0))  #23149

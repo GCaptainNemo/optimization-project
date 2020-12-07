@@ -71,7 +71,9 @@ if __name__ == '__main__':
     DAO = DataAccessObject()
     criterion = MyLossFunction()
     use_gpu = torch.cuda.is_available()
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
+
     logistic_model.to(device)
     criterion.to(device)
     # 显存需大于等于4GB
@@ -85,21 +87,30 @@ if __name__ == '__main__':
     loss_lst = []
     for epoch in range(1000):
         # 前向
-        out = logistic_model(x_data)
-        loss = criterion(out, y_data)
-        print_loss = loss.data.item()
-        mask = out.ge(0.5).float()
-        correct = (mask == y_data).sum()
-        acc = correct.item() / x_data.size(0)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        loss_lst.append(loss.item())  # loss recoder
+        print("epoch = ", epoch)
+        def closure():
+            optimizer.zero_grad()
+            # output = model(input)
+            out = logistic_model(x_data)
+            loss = criterion(out, y_data)
+            loss.backward()
+            loss_lst.append(loss.item())
+            return loss
+        # loss = criterion(out, y_data)
+        # print_loss = loss.data.item()
+        # mask = out.ge(0.5).float()
+        # correct = (mask == y_data).sum()
+        # acc = correct.item() / x_data.size(0)
+        # optimizer.zero_grad()
+        # loss.backward()
+        optimizer.step(closure)
+          # loss recoder
+        print('*' * 10)
+        print('epoch {}'.format(epoch + 1))
+        print('loss is {:.4f}'.format(len(loss_lst)))
         if (epoch + 1) % 20 == 0:
-            print('*' * 10)
-            print('epoch {}'.format(epoch + 1))
-            print('loss is {:.4f}'.format(print_loss))
-            print('acc is {:.4f}'.format(acc))
+            torch.save(logistic_model, "LBFGS_model_epoch1000.pt")
+    # print('acc is {:.4f}'.format(acc))
     torch.save(logistic_model, "LBFGS_model_epoch1000.pt")
     with open("loss_lbfgs.pkl", "wb") as f:
         pickle.dump(loss_lst, f)
