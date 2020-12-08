@@ -8,7 +8,8 @@ import pickle
 
 # 超参数, BATCH_SIZE = 1即SGD
 BATCH_SIZE = 1
-EPOCH = 1000
+EPOCH = 100
+LAMBDA = 0.01
 
 # 加载数据
 
@@ -78,20 +79,26 @@ if __name__ == '__main__':
     optimizer = torch.optim.SGD(logistic_model.parameters(),
                                 lr=1e-3)
     loss_lst = []
-    for num_epoch in range(1000):
+    for num_epoch in range(EPOCH):
         print(num_epoch)
         for step, (batch_x, batch_y) in enumerate(DAO.loader):
             batch_x = batch_x.to(device)
             batch_y = batch_y.to(device)
 
             output = logistic_model(batch_x)  # get_out for every net
-            loss = criterion(output, batch_y)  # compute loss for every net
+
+            classify_loss = criterion(output, batch_y)  # compute loss for every net
+            regular_loss = 0
+            for par in logistic_model.parameters():
+                regular_loss += torch.sum(torch.pow(par, 2))
+            loss = classify_loss + LAMBDA * regular_loss
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step() # apply gradient
             loss_lst.append(loss.item()) # loss recoder
         print('Epoch [{}/{}], Loss: {:.4f}'.format(num_epoch + 1, EPOCH, loss.item()))
-    torch.save(logistic_model, "SGD_model_epoch1000.pt")
+    torch.save(logistic_model, "SGD_model_100.pt")
     with open("loss_sgd.pkl", "wb") as f:
         pickle.dump(loss_lst, f)
     print(loss)

@@ -7,9 +7,8 @@ import torch.utils.data as Data
 import pickle
 
 # 超参数
-BATCH_SIZE = 32
-EPOCH = 1000
-
+EPOCH = 100
+LAMBDA = 0.01
 # 加载数据
 
 
@@ -21,7 +20,7 @@ class DataAccessObject:
             target是 n_samples一维numpy.ndarray数组
         """
         self.load_data()
-        self.load_batch()
+
 
     def load_data(self):
         rcv1 = fetch_rcv1(subset='train', download_if_missing=False)
@@ -33,15 +32,6 @@ class DataAccessObject:
         y = rcv1.target.A
         y = y.astype(np.float32)  # 修改数据类型，否则会出错
         self.yArray = torch.from_numpy(y)
-
-    def load_batch(self):
-        self.torch_dataset = Data.TensorDataset(self.xArray, self.yArray)
-        self.loader = Data.DataLoader(
-            dataset=self.torch_dataset,
-            batch_size=BATCH_SIZE,
-            shuffle=True,  # true表示每个epoch需要洗牌
-            num_workers=2,  # 每次训练有两个线程进行的
-        )
 
 
 # 定义LogisticRegression
@@ -74,7 +64,6 @@ if __name__ == '__main__':
     use_gpu = torch.cuda.is_available()
     # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     device = torch.device("cpu")
-
     logistic_model.to(device)
     criterion.to(device)
     # 显存需大于等于4GB
@@ -86,24 +75,20 @@ if __name__ == '__main__':
                       history_size=100, line_search_fn=None)
 
     loss_lst = []
-    for epoch in range(1000):
+    for epoch in range(100):
         # 前向
         print("epoch = ", epoch)
         def closure():
             optimizer.zero_grad()
-            # output = model(input)
             out = logistic_model(x_data)
-            loss = criterion(out, y_data)
+            classify_loss = criterion(out, y_data)
+            regular_loss = 0
+            for par in logistic_model.parameters():
+                regular_loss += torch.sum(torch.pow(par, 2))
+            loss = classify_loss + LAMBDA * regular_loss
             loss.backward()
             loss_lst.append(loss.item())
             return loss
-        # loss = criterion(out, y_data)
-        # print_loss = loss.data.item()
-        # mask = out.ge(0.5).float()
-        # correct = (mask == y_data).sum()
-        # acc = correct.item() / x_data.size(0)
-        # optimizer.zero_grad()
-        # loss.backward()
         optimizer.step(closure)
           # loss recoder
         print('*' * 10)
@@ -112,6 +97,6 @@ if __name__ == '__main__':
         if (epoch + 1) % 20 == 0:
             torch.save(logistic_model, "LBFGS_model_epoch1000.pt")
     # print('acc is {:.4f}'.format(acc))
-    torch.save(logistic_model, "LBFGS_model_epoch1000.pt")
+    torch.save(logistic_model, "LBFGS_model_100.pt")
     with open("loss_lbfgs.pkl", "wb") as f:
         pickle.dump(loss_lst, f)

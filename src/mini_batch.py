@@ -7,7 +7,8 @@ import pickle
 
 # 超参数
 BATCH_SIZE = 32
-EPOCH = 1000
+EPOCH = 100
+LAMBDA = 0.01
 
 # 加载数据
 class DataAccessObject:
@@ -67,7 +68,6 @@ if __name__ == '__main__':
     logistic_model = LogisticRegression()
     DAO = DataAccessObject()
     criterion = MyLossFunction()
-    # criterion = nn.BCELoss()
     use_gpu = torch.cuda.is_available()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     logistic_model.to(device)
@@ -75,13 +75,21 @@ if __name__ == '__main__':
     optimizer = torch.optim.SGD(logistic_model.parameters(),
                                 lr=1e-3)
     loss_lst = []
-    for num_epoch in range(1000):
+
+    for num_epoch in range(EPOCH):
         print(num_epoch)
         for step, (batch_x, batch_y) in enumerate(DAO.loader):
+            # print("before", batch_x.device)
             batch_x = batch_x.to(device)
+            # print("after", batch_x.device)
+            # print(batch_x.size())
             batch_y = batch_y.to(device)
             output = logistic_model(batch_x)  # get_out for every net
-            loss = criterion(output, batch_y)  # compute loss for every net
+            classify_loss = criterion(output, batch_y)  # compute loss for every net
+            regular_loss = 0
+            for par in logistic_model.parameters():
+                regular_loss += torch.sum(torch.pow(par, 2))
+            loss = regular_loss + LAMBDA * classify_loss
             optimizer.zero_grad()
             loss.backward()
             optimizer.step() # apply gradient

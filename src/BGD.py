@@ -7,7 +7,7 @@ import pickle
 
 # 超参数
 EPOCH = 100
-
+LAMBDA = 0.01
 
 # 加载数据
 class DataAccessObject:
@@ -72,10 +72,15 @@ if __name__ == '__main__':
     optimizer = torch.optim.SGD(logistic_model.parameters(),
                                 lr=3)
     loss_lst = []
-    for num_epoch in range(100):
+    for num_epoch in range(EPOCH):
         print(num_epoch)
         output = logistic_model(DAO.xArray)  # get_out for every net
-        loss = criterion(output, DAO.yArray)  # compute loss for every net
+        regularization_loss = 0
+        for par in logistic_model.parameters():
+            regularization_loss += \
+                torch.sum(torch.pow(par, 2))
+        classify_loss = criterion(output, DAO.yArray)  # compute loss for every net
+        loss = classify_loss + LAMBDA * regularization_loss
         optimizer.zero_grad()
         loss.backward()
         optimizer.step() # apply gradient
