@@ -44,6 +44,29 @@ class DataAccessObject:
         )
 
 
+class data_prefetcher():
+    """ 给dataloader 训练加速"""
+    def __init__(self, loader):
+        self.loader = iter(loader)
+        # self.stream = torch.cuda.Stream()
+        self.preload()
+
+    def preload(self):
+        try:
+            self.next_data = next(self.loader)
+        except StopIteration:
+            self.next_input = None
+            return
+        # with torch.cuda.stream(self.stream):
+        #     self.next_data = self.next_data.cuda(non_blocking=True)
+
+    def next(self):
+        # torch.cuda.current_stream().wait_stream(self.stream)
+        data = self.next_data
+        self.preload()
+        return data
+
+
 # 定义LogisticRegression
 class LogisticRegression(nn.Module):
     def __init__(self):
@@ -81,7 +104,17 @@ if __name__ == '__main__':
     loss_lst = []
     for num_epoch in range(EPOCH):
         print(num_epoch)
-        for step, (batch_x, batch_y) in enumerate(DAO.loader):
+
+
+        prefetcher = data_prefetcher(DAO.loader)
+        batch_x, batch_y = prefetcher.next()
+        i = 0
+        while batch_x is not None:
+            print(i, len(batch_x))
+            i += 1
+            data = prefetcher.next()
+
+        # for step, (batch_x, batch_y) in enumerate(DAO.loader):
             batch_x = batch_x.to(device)
             batch_y = batch_y.to(device)
 
