@@ -67,6 +67,7 @@ class MyLossFunction(nn.Module):
 
 # optimization process
 if __name__ == '__main__':
+
     logistic_model = LogisticRegression()
     DAO = DataAccessObject()
     criterion = MyLossFunction()

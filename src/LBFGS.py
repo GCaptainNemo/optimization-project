@@ -28,6 +28,7 @@ class DataAccessObject:
         x = rcv1.data.A  # numpy.float64
         x = x.astype(np.float32)
         self.xArray = torch.from_numpy(x)
+        print("length = ", len(self.xArray))
         # csr_matrix -> numpy.ndarray -> torch.tensor
         y = rcv1.target.A
         y = y.astype(np.float32)  # 修改数据类型，否则会出错
