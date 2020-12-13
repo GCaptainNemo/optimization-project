@@ -1,6 +1,6 @@
-# 最优化大作业
+# 大规模机器学习优化方法比较
 ## 实验内容：
-用带二范数的logistic回归解决RCV1数据集上的多标签文本主题分类问题，测试比较了可微严格凸函数上，大规模机器学习优化算法的收敛速率，包括：
+用带二范数正则化函数的logistic回归解决RCV1数据集上的多标签文本主题分类问题，测试比较了可微严格凸函数上，大规模机器学习优化算法的收敛速率，包括：
 1. BGD
 2. mini-batch GD
 3. SGD
@@ -13,7 +13,9 @@
 4. LBFGS.py
 
 ## 环境：
-python + pytorch + sklearn
+python3.6 + pytorch + sklearn
+
+其中RCV1数据集通过sklearn的fetch_rcv1函数下载
 
 ## 参考文献
 [1] H. Robbins and S. Monro, A Stochastic Approximation Method, The Annals of Mathematical
