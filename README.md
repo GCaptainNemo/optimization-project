@@ -1,9 +1,21 @@
-# optimization-project
-logistic regression on rcv1[3] dataset using optimization method mini-batch GD, SGD, BGD as well as L-BGFS.
+# 最优化大作业
+## 实验内容：
+用带二范数的logistic回归解决RCV1数据集上的多标签文本主题分类问题，测试比较了可微严格凸函数上，大规模机器学习优化算法的收敛速率，包括：
+1. BGD
+2. mini-batch GD
+3. SGD
+4. L-BFGS
 
+## 对应代码：
+1. src/BGD.py
+2. src/mini_batch.py
+3. src/SGD.py
+4. LBFGS.py
 
+## 环境：
+python + pytorch + sklearn
 
-# References
+## 参考文献
 [1] H. Robbins and S. Monro, A Stochastic Approximation Method, The Annals of Mathematical
 Statistics, 1951, vo.22, pp.400-407. 
 
