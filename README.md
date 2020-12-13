@@ -10,7 +10,7 @@
 1. src/BGD.py
 2. src/mini_batch.py
 3. src/SGD.py
-4. LBFGS.py
+4. src/LBFGS.py
 
 ## 环境：
 python3.6 + pytorch + sklearn
