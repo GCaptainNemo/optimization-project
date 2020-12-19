@@ -13,7 +13,7 @@
 4. src/LBFGS.py
 
 ## 环境：
-python3.6 + pytorch + sklearn
+python3.6 + pytorch1.4.0 + sklearn
 
 其中RCV1数据集通过sklearn的fetch_rcv1函数下载
 
