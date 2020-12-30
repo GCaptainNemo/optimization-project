@@ -4,6 +4,11 @@ from sklearn.datasets import fetch_rcv1
 import numpy as np
 import torch.utils.data as Data
 import pickle
+import os
+
+
+# os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
+
 
 # 超参数
 EPOCH = 100
@@ -62,8 +67,9 @@ if __name__ == '__main__':
     # criterion = nn.BCELoss()
     use_gpu = torch.cuda.is_available()
     # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    
     device = torch.device("cpu")
-
+    # DAO.xArray.cuda(0)
     DAO.xArray = DAO.xArray.to(device)
     DAO.yArray = DAO.yArray.to(device)
 
