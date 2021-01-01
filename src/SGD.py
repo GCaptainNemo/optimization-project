@@ -1,18 +1,19 @@
 import torch
 from torch import nn
-from torch.autograd import Variable
 from sklearn.datasets import fetch_rcv1
 import numpy as np
 import torch.utils.data as Data
 import pickle
+import argparse
 
-# 超参数, BATCH_SIZE = 1即SGD
-BATCH_SIZE = 1
-EPOCH = 100
-LAMBDA = 0.01
-
-# 加载数据
-
+def parse_config():
+    parser = argparse.ArgumentParser(description='argument parser')
+    parser.add_argument('--epochs', '-e', type=int, default=100, required=False, help='number of epochs to train for')
+    parser.add_argument('--lamda', '-l', type=float, default=0.01, required=False, help='regularization parameter')
+    parser.add_argument('--device', choices=['gpu', 'cpu'], default='gpu', help='use gpu or cpu')
+    parser.add_argument('--learning_rate', '-lr', type=float, default=3, required=False, help='learning rate')
+    args = parser.parse_args()
+    return args
 
 class DataAccessObject:
     def __init__(self):
@@ -44,29 +45,6 @@ class DataAccessObject:
         )
 
 
-class data_prefetcher():
-    """ 给dataloader 训练加速"""
-    def __init__(self, loader):
-        self.loader = iter(loader)
-        # self.stream = torch.cuda.Stream()
-        self.preload()
-
-    def preload(self):
-        try:
-            self.next_data = next(self.loader)
-        except StopIteration:
-            self.next_input = None
-            return
-        # with torch.cuda.stream(self.stream):
-        #     self.next_data = self.next_data.cuda(non_blocking=True)
-
-    def next(self):
-        # torch.cuda.current_stream().wait_stream(self.stream)
-        data = self.next_data
-        self.preload()
-        return data
-
-
 # 定义LogisticRegression
 class LogisticRegression(nn.Module):
     def __init__(self):
@@ -91,33 +69,27 @@ class MyLossFunction(nn.Module):
 
 # optimization process
 if __name__ == '__main__':
-
+    args = parse_config()
     logistic_model = LogisticRegression()
     DAO = DataAccessObject()
     criterion = MyLossFunction()
-    # criterion = nn.BCELoss()
-    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
-    logistic_model.to(device)
-    criterion.to(device)
+    if args.device == "gpu":
+        device = torch.device("cuda:0")
+        logistic_model.to(device)
+        criterion.to(device)
+        DAO.xArray = DAO.xArray.to(device)
+        DAO.yArray = DAO.yArray.to(device)
+    else:
+        device = torch.device("cpu")
+    criterion.train()
+    logistic_model.train()
     optimizer = torch.optim.SGD(logistic_model.parameters(),
-                                lr=1e-3)
+                                lr=args.learning_rate)
     loss_lst = []
     per_iter_loss_lst = []
-    # CPU = torch.device("cpu")
-    DAO.xArray.to(device)
-    DAO.yArray.to(device)
 
-    for num_epoch in range(2):
+    for num_epoch in range(args.epochs):
         print(num_epoch)
-        # prefetcher = data_prefetcher(DAO.loader)
-        # data = prefetcher.next()
-        # # i = 0
-        # while data is not None:
-        #     # print(i, len(batch_x))
-        #     # i += 1
-        #     data = prefetcher.next()
-        #     batch_x, batch_y = data
         for step, (batch_x, batch_y) in enumerate(DAO.loader):
             batch_x = batch_x.to(device)
             batch_y = batch_y.to(device)
@@ -127,7 +99,7 @@ if __name__ == '__main__':
                 regular_loss = 0
                 for par in logistic_model.parameters():
                     regular_loss += torch.sum(torch.pow(par, 2))
-                loss = classify_loss + LAMBDA * regular_loss
+                loss = classify_loss + args.lamda * regular_loss
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -135,24 +107,18 @@ if __name__ == '__main__':
                 loss_lst.append(loss.item()) # loss recoder
 
                 # #########################################
-                # #########################################
+                # ~~~~~~~~~~~~  衡量误差  ~~~~~~~~~~~~~~~~~~
                 output = logistic_model(DAO.xArray)
                 classify_loss = criterion(output, DAO.yArray)  # compute loss for every net
                 regular_loss = 0
                 for par in logistic_model.parameters():
                     regular_loss += torch.sum(torch.pow(par, 2))
-                loss = classify_loss + LAMBDA * regular_loss
+                loss = classify_loss + args.lamda * regular_loss
                 per_iter_loss_lst.append(loss.item())
-        print('Epoch [{}/{}], Loss: {:.4f}'.format(num_epoch + 1, EPOCH, loss.item()))
-        # logistic_model.to(device)
-    torch.save(logistic_model, "SGD_model_100.pt")
-    # with open("loss_sgd.pkl", "wb") as f:
-    #     pickle.dump(loss_lst, f)
+        print('Epoch [{}/{}], Loss: {:.4f}'.format(num_epoch + 1, args.epochs, loss.item()))
+    torch.save(logistic_model, "SGD_model.pt")
     with open("loss_sgd_iter.pkl", "wb") as f:
         pickle.dump(per_iter_loss_lst, f)
-
-    print(loss)
-
 
 
 

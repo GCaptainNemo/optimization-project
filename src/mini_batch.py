@@ -1,70 +1,51 @@
 import torch
 from torch import nn
-from torch.autograd import Variable
 from sklearn.datasets import fetch_rcv1
 import numpy as np
 import torch.utils.data as Data
 import pickle
+import argparse
 
-# 超参数, BATCH_SIZE = 1即SGD
-BATCH_SIZE = 32
-EPOCH = 100
-LAMBDA = 0.01
 
-# 加载数据
 
+def parse_config():
+    parser = argparse.ArgumentParser(description='argument parser')
+    parser.add_argument('--epochs', '-e', type=int, default=100, required=False, help='number of epochs to train for')
+    parser.add_argument('--lamda', '-l', type=float, default=0.01, required=False, help='regularization parameter')
+    parser.add_argument('--device', choices=['gpu', 'cpu'], default='gpu', help='use gpu or cpu')
+    parser.add_argument('--batch_size', '-b', type=int, default=32, help='batch size')
+    parser.add_argument('--learning_rate', '-lr', type=float, default=3, required=False, help='learning rate')
+    args = parser.parse_args()
+    return args
 
 class DataAccessObject:
-    def __init__(self):
+    def __init__(self, batch_size):
         """
             dir(rcv1) = ['DESCR', 'data', 'sample_id', 'target', 'target_names']
             data是 n_samples x n_feature的二维numpy.ndarray数组
             target是 n_samples一维numpy.ndarray数组
         """
         self.load_data()
-        self.load_batch()
+        self.load_batch(batch_size)
 
     def load_data(self):
         rcv1 = fetch_rcv1(subset='train', download_if_missing=False)
         x = rcv1.data.A  # numpy.float64
         x = x.astype(np.float32)  # 修改数据类型，否则就会出错
-        self.xArray = torch.from_numpy(x)[:23040]
+        self.xArray = torch.from_numpy(x)
         # csr_matrix -> numpy.ndarray -> torch.tensor
         y = rcv1.target.A
         y = y.astype(np.float32)  # 修改数据类型，否则就会出错
-        self.yArray = torch.from_numpy(y)[:23040]
+        self.yArray = torch.from_numpy(y)
 
-    def load_batch(self):
+    def load_batch(self, batch_size):
         self.torch_dataset = Data.TensorDataset(self.xArray, self.yArray)
         self.loader = Data.DataLoader(
             dataset=self.torch_dataset,
-            batch_size=512,
+            batch_size=batch_size*10,
             shuffle=True,  # true表示每个epoch需要洗牌
             num_workers=2,  # 每次训练有两个线程进行的
         )
-
-
-class data_prefetcher():
-    """ 给dataloader 训练加速"""
-    def __init__(self, loader):
-        self.loader = iter(loader)
-        # self.stream = torch.cuda.Stream()
-        self.preload()
-
-    def preload(self):
-        try:
-            self.next_data = next(self.loader)
-        except StopIteration:
-            self.next_input = None
-            return
-        # with torch.cuda.stream(self.stream):
-        #     self.next_data = self.next_data.cuda(non_blocking=True)
-
-    def next(self):
-        # torch.cuda.current_stream().wait_stream(self.stream)
-        data = self.next_data
-        self.preload()
-        return data
 
 
 # 定义LogisticRegression
@@ -91,23 +72,28 @@ class MyLossFunction(nn.Module):
 
 # optimization process
 if __name__ == '__main__':
-
+    args = parse_config()
     logistic_model = LogisticRegression()
-    DAO = DataAccessObject()
+    DAO = DataAccessObject(args.batch_size)
     criterion = MyLossFunction()
     # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
 
-    logistic_model.to(device)
-    criterion.to(device)
+    if args.device == "gpu":
+        device = torch.device("cuda:0")
+        logistic_model.to(device)
+        criterion.to(device)
+
+    else:
+        device = torch.device("cpu")
+
     optimizer = torch.optim.SGD(logistic_model.parameters(),
-                                lr=3)
+                                lr=args.learning_rate)
     per_iter_loss_lst = []
     loss_lst = []
     DAO.xArray = DAO.xArray.to(device)
     DAO.yArray = DAO.yArray.to(device)
 
-    for num_epoch in range(EPOCH):
+    for num_epoch in range(args.epochs):
         print(num_epoch)
         for step, (batch_x, batch_y) in enumerate(DAO.loader):
             batch_x = batch_x.to(device)    # 512
@@ -118,7 +104,7 @@ if __name__ == '__main__':
                 regular_loss = 0
                 for par in logistic_model.parameters():
                     regular_loss += torch.sum(torch.pow(par, 2))
-                loss = classify_loss + LAMBDA * regular_loss
+                loss = classify_loss + args.lamda * regular_loss
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -131,19 +117,16 @@ if __name__ == '__main__':
                 regular_loss = 0
                 for par in logistic_model.parameters():
                     regular_loss += torch.sum(torch.pow(par, 2))
-                loss = classify_loss + LAMBDA * regular_loss
+                loss = classify_loss + args.lamda * regular_loss
                 per_iter_loss_lst.append(loss.item())
                 print('iter [{}], Loss: {:.4f}'.format(i, loss.item()))
         with open("loss_minibatch_iter.pkl", "wb") as f:
             pickle.dump(per_iter_loss_lst, f)
 
-        print('Epoch [{}/{}], Loss: {:.4f}'.format(num_epoch + 1, EPOCH, loss.item()))
-        # logistic_model.to(device)
-    torch.save(logistic_model, "minibatch_model_100.pt")
+        print('Epoch [{}/{}], Loss: {:.4f}'.format(num_epoch + 1, args.epochs, loss.item()))
+    torch.save(logistic_model, "minibatch_model.pt")
     with open("loss_minibatch_iter.pkl", "wb") as f:
         pickle.dump(per_iter_loss_lst, f)
-
-    print(loss)
 
 
 

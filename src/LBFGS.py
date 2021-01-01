@@ -1,16 +1,19 @@
 import torch
 from torch import nn
-from torch.autograd import Variable
 from sklearn.datasets import fetch_rcv1
 import numpy as np
-import torch.utils.data as Data
 import pickle
+import argparse
 
 # 超参数
-EPOCH = 100
-LAMBDA = 0.01
 # 加载数据
-
+def parse_config():
+    parser = argparse.ArgumentParser(description='argument parser')
+    parser.add_argument('--epochs', '-e', type=int, default=10, required=False, help='number of epochs to train for')
+    parser.add_argument('--lamda', '-l', type=float, default=0.01, required=False, help='regularization parameter')
+    parser.add_argument('--device', choices=['gpu', 'cpu'], default='gpu', help='use gpu or cpu')
+    args = parser.parse_args()
+    return args
 
 class DataAccessObject:
     def __init__(self):
@@ -58,34 +61,37 @@ class MyLossFunction(nn.Module):
 
 # optimization process
 if __name__ == '__main__':
+    args = parse_config()
     logistic_model = LogisticRegression()
     DAO = DataAccessObject()
     criterion = MyLossFunction()
-    use_gpu = torch.cuda.is_available()
-    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
-    logistic_model.to(device)
-    criterion.to(device)
-    # 显存需大于等于4GB
-    x_data = DAO.xArray.to(device)
-    y_data = DAO.yArray.to(device)
+    if args.device == "gpu":
+        device = torch.device("cuda:0")
+        DAO.xArray = DAO.xArray.to(device)
+        DAO.yArray = DAO.yArray.to(device)
+        logistic_model.to(device)
+        criterion.to(device)
+    else:
+        device = torch.device("cpu")
+    logistic_model.train()
+    criterion.train()
     optimizer = torch.optim.LBFGS(logistic_model.parameters(),
                       lr=1, max_iter=20, max_eval=None,
                       tolerance_grad=1e-05, tolerance_change=1e-09,
                       history_size=100, line_search_fn=None)
 
     loss_lst = []
-    for epoch in range(100):
+    for epoch in range(args.epochs):
         # 前向
         print("epoch = ", epoch)
         def closure():
             optimizer.zero_grad()
-            out = logistic_model(x_data)
-            classify_loss = criterion(out, y_data)
+            out = logistic_model(DAO.xArray)
+            classify_loss = criterion(out, DAO.yArray)
             regular_loss = 0
             for par in logistic_model.parameters():
                 regular_loss += torch.sum(torch.pow(par, 2))
-            loss = classify_loss + LAMBDA * regular_loss
+            loss = classify_loss + args.lamda * regular_loss
             loss.backward()
             loss_lst.append(loss.item())
             return loss
@@ -93,9 +99,7 @@ if __name__ == '__main__':
           # loss recoder
         print('*' * 10)
         print('epoch {}'.format(epoch + 1))
-        print('loss is {:.4f}'.format(len(loss_lst)))
-        if (epoch + 1) % 20 == 0:
-            torch.save(logistic_model, "LBFGS_model_epoch1000.pt")
+        print('loss is {:.4f}'.format(loss_lst[-1]))
     # print('acc is {:.4f}'.format(acc))
     torch.save(logistic_model, "LBFGS_model_100.pt")
     with open("loss_lbfgs.pkl", "wb") as f:

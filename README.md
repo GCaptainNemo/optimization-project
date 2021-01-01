@@ -16,10 +16,14 @@
 python3.6 + pytorch + sklearn + numpy
 
 其中RCV1数据集通过sklearn的fetch_rcv1函数下
-## 安装
-python依赖库安装
+## 安装与使用
+a. python依赖库安装
 ```
 pip install -r requirements.txt
+```
+b. 参数查询
+```
+python xxx.py -h
 ```
 
 ## 参考文献
