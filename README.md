@@ -13,9 +13,14 @@
 4. src/LBFGS.py
 
 ## 环境：
-python3.6 + pytorch1.4.0 + sklearn
+python3.6 + pytorch + sklearn + numpy
 
-其中RCV1数据集通过sklearn的fetch_rcv1函数下载
+其中RCV1数据集通过sklearn的fetch_rcv1函数下
+## 安装
+python依赖库安装
+```
+pip install -r requirements.txt
+```
 
 ## 参考文献
 [1] H. Robbins and S. Monro, A Stochastic Approximation Method, The Annals of Mathematical
