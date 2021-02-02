@@ -15,7 +15,7 @@
 ## 环境：
 python3.6 + pytorch + sklearn + numpy
 
-其中RCV1数据集通过sklearn的fetch_rcv1函数下
+其中RCV1数据集通过sklearn的fetch_rcv1函数下载，如果下载速度过慢可以采用国内服务器下载
 ## 安装与使用
 a. python依赖库安装
 ```
